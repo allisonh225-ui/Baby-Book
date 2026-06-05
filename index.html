@@ -142,35 +142,43 @@ let currentView = "list";
 let selectedDate = new Date().toISOString().split("T")[0];
 
 async function loadData() {
-  const res = await fetch(API_URL);
-  const data = await res.json();
-  alert("Loaded " + data.length + " rows");
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
 
-  roster = data.map(row => ({
-    AnimalID: String(row.AnimalID),
-    Name: row.Name || "(no name)",
-    Group: row.Group,
-    Shelter: row.Shelter,
-    Sex: "F"
-  }));
+    alert("Loaded " + data.length + " rows");
 
-  records = {};
+    roster = data.map(row => ({
+      AnimalID: String(row.AnimalID),
+      Name: row.Name || "(no name)",
+      Group: row.Group,
+      Shelter: row.Shelter,
+      Sex: "F"
+    }));
 
-  data.forEach(row => {
-    records[row.AnimalID] = {
-      DeliveryDate: formatDate(row["Delivery Date"]),
-      InfantStatus: row["Infant Status"],
-      Placenta: row["Placenta"],
-      Foster: row["Foster Infant"],
-      Notes: row["Notes"]
-    };
-  });
+    records = {};
 
-  roster.sort((a,b) => Number(a.AnimalID) - Number(b.AnimalID));
+    data.forEach(row => {
+      records[row.AnimalID] = {
+        DeliveryDate: formatDate(row["Delivery Date"]),
+        InfantStatus: row["Infant Status"],
+        Placenta: row["Placenta"],
+        Foster: row["Foster Infant"],
+        Notes: row["Notes"]
+      };
+    });
 
-  init();
-  render();
+    roster.sort((a,b) => Number(a.AnimalID) - Number(b.AnimalID));
+
+    init();
+    render();
+
+  } catch (err) {
+    alert("ERROR: " + err.message);
+    console.error(err);
+  }
 }
+
 
 function formatDate(d) {
   if (!d) return "";
