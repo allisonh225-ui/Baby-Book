@@ -1,124 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-body {
-  background: black;
-  color: white;
-  font-family: Arial;
-  margin: 0;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  background: black;
-  z-index: 1000;
-  padding: 10px;
-  border-bottom: 2px solid #00ffcc;
-}
-
-.top-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 10px;
-}
-
-.view-btn {
-  padding: 10px 14px;
-  font-size: 16px;
-  border-radius: 6px;
-  border: none;
-  background: #00ffcc;
-  color: black;
-  font-weight: bold;
-  margin-right: 6px;
-}
-
-.view-btn.active {
-  background: white;
-}
-
-#groupFilter {
-  padding: 10px;
-  font-size: 16px;
-}
-
-.row {
-  border-bottom: 1px solid #444;
-  padding: 14px;
-}
-
-.row.yellow { background: rgba(255,255,0,0.08); }
-.row.red    { background: rgba(255,0,0,0.08); }
-.row.green  { background: rgba(0,255,0,0.08); }
-
-.row-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.date {
-  color: #00ffcc;
-  font-weight: bold;
-}
-
-.card {
-  margin-top: 10px;
-  padding: 10px;
-  background: #111;
-}
-
-.status-icon {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 10px;
-  font-size: 13px;
-  font-weight: bold;
-  color: black;
-}
-
-.hidden {
-  display: none;
-}
-</style>
-</head>
-
-<body>
-
-<div class="header">
-
-  <div class="top-row">
-    <h2>Baby Book</h2>
-    <div id="liveCount">Live: 0</div>
-  </div>
-
-  <div class="controls">
-    <div>
-      <button id="listBtn" class="view-btn active">List</button>
-    </div>
-
-    <select id="groupFilter"></select>
-  </div>
-
-</div>
-
-<div id="app"></div>
-
 <script>
 
 const API_URL = "https://script.google.com/macros/s/AKfycbwDEpL21Qwj2eWiLSrgNf0kaV2xc3L2ov47CwUH9ZmVih1TgwwB679-BXxs4tQBTxM6OA/exec";
@@ -127,14 +6,13 @@ let roster = [];
 let records = {};
 
 let selectedGroup = "";
+let currentView = "list";
 
 // ✅ LOAD DATA
 async function loadData() {
   try {
     const res = await fetch(API_URL);
     const data = await res.json();
-
-    alert("Loaded " + data.length + " rows");
 
     roster = data.map(row => ({
       AnimalID: String(row.AnimalID),
@@ -157,6 +35,7 @@ async function loadData() {
 
     roster.sort((a, b) => Number(a.AnimalID) - Number(b.AnimalID));
 
+    init();
     render();
 
   } catch (err) {
@@ -168,6 +47,22 @@ async function loadData() {
 function formatDate(d) {
   if (!d) return "";
   return new Date(d).toISOString().split("T")[0];
+}
+
+function init() {
+  const groups = [...new Set(roster.map(r => r.Group + " | " + r.Shelter))];
+
+  let filter = document.getElementById("groupFilter");
+  filter.innerHTML = "<option value=''>All Groups</option>";
+
+  groups.forEach(g => {
+    filter.innerHTML += `<option value="${g}">${g}</option>`;
+  });
+
+  filter.onchange = e => {
+    selectedGroup = e.target.value;
+    render();
+  };
 }
 
 function getStatus(rec) {
@@ -184,40 +79,46 @@ function render() {
 
   let liveCount = 0;
 
-  roster.forEach(r => {
+  roster
+    .filter(r => !selectedGroup || (r.Group + " | " + r.Shelter) === selectedGroup)
+    .forEach(r => {
 
-    let rec = records[r.AnimalID] || {};
-    const status = getStatus(rec);
+      let rec = records[r.AnimalID] || {};
+      const status = getStatus(rec);
 
-    if (rec.DeliveryDate && (rec.Foster==="Yes" || rec.InfantStatus==="Alive")) {
-      liveCount++;
-    }
+      if (rec.DeliveryDate && (rec.Foster==="Yes" || rec.InfantStatus==="Alive")) {
+        liveCount++;
+      }
 
-    let row = document.createElement("div");
-    row.className = "row " + status.cls;
+      let row = document.createElement("div");
+      row.className = "row " + status.cls;
 
-    row.innerHTML = `
-      <div class="row-header">
-        <div style="display:flex; align-items:center;">
-          <div class="status-icon" style="background:${status.color}">
-            ${status.label}
+      row.innerHTML = `
+        <div class="row-header">
+          <div style="display:flex; align-items:center;">
+            
+            <div class="status-icon" style="background:${status.color}">
+              ${status.label}
+            </div>
+
+            <div>
+              <span style="opacity:0.7; margin-right:6px;">${r.AnimalID}</span>
+              ${r.Name}
+            </div>
+
           </div>
-          ${r.AnimalID} ${r.Name}
-        </div>
-        <div class="date">${rec.DeliveryDate || "—"}</div>
-      </div>
-    `;
 
-    app.appendChild(row);
-  });
+          <div class="date">${rec.DeliveryDate || "—"}</div>
+        </div>
+      `;
+
+      app.appendChild(row);
+    });
 
   document.getElementById("liveCount").innerText = "Live: " + liveCount;
 }
 
-// ✅ START APP
+// ✅ START
 window.onload = loadData;
 
 </script>
-
-</body>
-</html>
