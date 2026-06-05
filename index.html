@@ -1,10 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  background: black;
+  color: white;
+  font-family: Arial;
+  margin: 0;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  background: black;
+  z-index: 1000;
+  padding: 10px;
+  border-bottom: 2px solid #00ffcc;
+}
+
+.top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.controls {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.view-btn {
+  padding: 10px 14px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: none;
+  background: #00ffcc;
+  color: black;
+  font-weight: bold;
+  margin-right: 6px;
+}
+
+.view-btn.active {
+  background: white;
+}
+
+#groupFilter {
+  padding: 10px;
+  font-size: 16px;
+}
+
+.row {
+  border-bottom: 1px solid #444;
+  padding: 14px;
+}
+
+.row.yellow { background: rgba(255,255,0,0.08); }
+.row.red    { background: rgba(255,0,0,0.08); }
+.row.green  { background: rgba(0,255,0,0.08); }
+
+.row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.date {
+  color: #00ffcc;
+  font-weight: bold;
+}
+
+.card {
+  margin-top: 10px;
+  padding: 10px;
+  background: #111;
+}
+
+.status-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  font-size: 13px;
+  font-weight: bold;
+  color: black;
+}
+
+.hidden {
+  display: none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <div class="top-row">
+    <h2>Baby Book</h2>
+    <div id="liveCount">Live: 0</div>
+  </div>
+
+  <div class="controls">
+    <div>
+      <button id="listBtn" class="view-btn active" onclick="switchView('list')">List</button>
+      <button id="calBtn" class="view-btn" onclick="switchView('calendar')">Calendar</button>
+    </div>
+
+    <select id="groupFilter"></select>
+  </div>
+
+  <div id="calendarControls" class="hidden" style="margin-top:10px;">
+    <input type="date" id="calendarDate">
+    <button class="view-btn" onclick="goToday()">Today</button>
+    <div id="dayCount"></div>
+  </div>
+</div>
+
+<div id="app"></div>
+
 <script>
 
 const API_URL = "https://script.google.com/macros/s/AKfycbwDEpL21Qwj2eWiLSrgNf0kaV2xc3L2ov47CwUH9ZmVih1TgwwB679-BXxs4tQBTxM6OA/exec";
 
 let roster = [];
 let records = {};
-
 let selectedGroup = "";
 let currentView = "list";
 let selectedDate = new Date().toISOString().split("T")[0];
@@ -12,7 +136,7 @@ let selectedDate = new Date().toISOString().split("T")[0];
 // ✅ LOAD DATA
 async function loadData() {
   try {
-    const res = await fetch(API_URL + "?t=" + Date.now()); // prevents caching
+    const res = await fetch(API_URL + "?t=" + Date.now());
     const data = await res.json();
 
     roster = data.map(row => ({
@@ -49,24 +173,30 @@ function formatDate(d) {
   return new Date(d).toISOString().split("T")[0];
 }
 
-// ✅ INIT FILTERS
+// ✅ INIT (WITH CORRECT SHELTER SORT)
 function init() {
-  const groups = [...new Set(
-  roster.map(r => ({
-    label: r.Group + " | " + r.Shelter,
-    shelterNum: parseInt((r.Shelter || "").replace(/\D/g, "")) || 0
-  }))
-)];
-
-// ✅ Sort by shelter number
-groups.sort((a, b) => a.shelterNum - b.shelterNum);
 
   let filter = document.getElementById("groupFilter");
+  if (!filter) return;
+
+  let groups = roster.map(r => ({
+    label: r.Group + " | " + r.Shelter,
+    shelterNum: parseInt((r.Shelter || "").replace(/\D/g, "")) || 0
+  }));
+
+  // remove duplicates
+  groups = groups.filter((v, i, a) =>
+    a.findIndex(x => x.label === v.label) === i
+  );
+
+  // sort by shelter
+  groups.sort((a, b) => a.shelterNum - b.shelterNum);
+
   filter.innerHTML = "<option value=''>All Groups</option>";
 
-groups.forEach(g => {
-  filter.innerHTML += `<option value="${g.label}">${g.label}</option>`;
-});
+  groups.forEach(g => {
+    filter.innerHTML += `<option value="${g.label}">${g.label}</option>`;
+  });
 
   filter.onchange = e => {
     selectedGroup = e.target.value;
@@ -102,12 +232,10 @@ function save(id, field, value) {
   });
 }
 
-// ✅ TOGGLE CARD
 function toggleCard(id) {
   document.getElementById("card-" + id).classList.toggle("hidden");
 }
 
-// ✅ VIEW SWITCH
 function switchView(view) {
   currentView = view;
 
@@ -120,7 +248,6 @@ function switchView(view) {
   render();
 }
 
-// ✅ TODAY BUTTON
 function goToday() {
   selectedDate = new Date().toISOString().split("T")[0];
   document.getElementById("calendarDate").value = selectedDate;
@@ -129,13 +256,11 @@ function goToday() {
 
 // ✅ RENDER
 function render() {
-
   let app = document.getElementById("app");
   app.innerHTML = "";
 
   let liveCount = 0;
 
-  // ✅ LIST VIEW
   if (currentView === "list") {
 
     roster
@@ -155,16 +280,11 @@ function render() {
         row.innerHTML = `
           <div class="row-header" onclick="toggleCard('${r.AnimalID}')">
             <div style="display:flex; align-items:center;">
-              
               <div class="status-icon" style="background:${status.color}">
                 ${status.label}
               </div>
-
-              <div>
-                <span style="opacity:0.7;">${r.AnimalID}</span> ${r.Name}
-              </div>
+              ${r.AnimalID} ${r.Name}
             </div>
-
             <div class="date">${rec.DeliveryDate || "—"}</div>
           </div>
 
@@ -211,9 +331,7 @@ ${rec.Notes || ""}
     document.getElementById("liveCount").innerText = "Live: " + liveCount;
   }
 
-  // ✅ CALENDAR VIEW
   else {
-
     document.getElementById("liveCount").innerText = selectedDate;
 
     let deliveries = Object.entries(records)
@@ -223,7 +341,6 @@ ${rec.Notes || ""}
       "Deliveries: " + deliveries.length;
 
     deliveries.forEach(([id, rec]) => {
-
       const female = roster.find(r => r.AnimalID === id);
       const status = getStatus(rec);
 
@@ -235,9 +352,7 @@ ${rec.Notes || ""}
           <span style="color:${status.color}; margin-right:8px;">●</span>
           <b>${id}</b>
         </div>
-        <div style="opacity:0.8;">
-          ${female?.Group || ""} | ${female?.Shelter || ""}
-        </div>
+        <div>${female?.Group || ""} | ${female?.Shelter || ""}</div>
         <div>${rec.InfantStatus || ""}</div>
       `;
 
@@ -250,10 +365,13 @@ ${rec.Notes || ""}
   }
 }
 
-// ✅ AUTO REFRESH every 15 sec
+// ✅ AUTO REFRESH
 setInterval(loadData, 15000);
 
 // ✅ START
 window.onload = loadData;
 
 </script>
+
+</body>
+</html>
