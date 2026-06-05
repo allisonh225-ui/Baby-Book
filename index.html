@@ -144,6 +144,7 @@ let selectedDate = new Date().toISOString().split("T")[0];
 async function loadData() {
   const res = await fetch(API_URL);
   const data = await res.json();
+  alert("Loaded " + data.length + " rows");
 
   roster = data.map(row => ({
     AnimalID: String(row.AnimalID),
