@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  background: black;
+  color: white;
+  font-family: Arial;
+  margin: 0;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  background: black;
+  z-index: 1000;
+  padding: 10px;
+  border-bottom: 2px solid #00ffcc;
+}
+
+.top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.view-btn {
+  padding: 10px 14px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: none;
+  background: #00ffcc;
+  color: black;
+  font-weight: bold;
+  margin-right: 6px;
+}
+
+.view-btn.active {
+  background: white;
+}
+
+#groupFilter {
+  padding: 10px;
+  font-size: 16px;
+}
+
+.row {
+  border-bottom: 1px solid #444;
+  padding: 12px;
+}
+
+.row-header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.date {
+  color: #00ffcc;
+}
+
+.card {
+  margin-top: 10px;
+  padding: 10px;
+  background: #111;
+}
+
+.hidden {
+  display: none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+
+  <div class="top-row">
+    <h2>Baby Book</h2>
+    <div id="liveCount">Live: 0</div>
+  </div>
+
+  <div class="controls">
+    <div>
+      <button id="listBtn" class="view-btn active" onclick="switchView('list')">List</button>
+      <button id="calBtn" class="view-btn" onclick="switchView('calendar')">Calendar</button>
+    </div>
+
+    <select id="groupFilter"></select>
+  </div>
+
+  <div id="calendarControls" class="hidden" style="margin-top:10px;">
+    <input type="date" id="calendarDate">
+    <button class="view-btn" onclick="goToday()">Today</button>
+    <div id="dayCount" style="margin-top:5px;"></div>
+  </div>
+
+</div>
+
+<div id="app"></div>
+
+<script>
+
+// ✅ PUT YOUR GOOGLE SCRIPT URL HERE
+const API_URL = "https://script.google.com/macros/s/AKfycbwDEpL21Qwj2eWiLSrgNf0kaV2xc3L2ov47CwUH9ZmVih1TgwwB679-BXxs4tQBTxM6OA/exec";
+
+let roster = [];
+let records = {};
+
+let selectedGroup = "";
+let currentView = "list";
+let selectedDate = new Date().toISOString().split("T")[0];
+
+// ✅ LOAD DATA FROM GOOGLE SHEETS
+async function loadData() {
+  const res = await fetch(API_URL);
+  const data = await res.json();
+
+  roster = data.map(row => ({
+    AnimalID: String(row.AnimalID),
+    Name: row.Name || "(no name)",
+    Group: row.Group,
+    Shelter: row.Shelter,
+    Sex: "F"
+  }));
+
+  records = {};
+
+  data.forEach(row => {
+    records[row.AnimalID] = {
+      DeliveryDate: formatDate(row["Delivery Date"]),
+      InfantStatus: row["Infant Status"],
+      Placenta: row["Placenta"],
+      Foster: row["Foster Infant"],
+      Notes: row["Notes"]
+    };
+  });
+
+  roster.sort((a,b) => Number(a.AnimalID) - Number(b.AnimalID));
+
+  init();
+  render();
+}
+
+function formatDate(d) {
+  if (!d) return "";
+  return new Date(d).toISOString().split("T")[0];
+}
+
+function init() {
+  const groups = [...new Set(roster.map(r => r.Group + " | " + r.Shelter))];
+
+  let filter = document.getElementById("groupFilter");
+  filter.innerHTML = "<option value=''>All Groups</option>";
+
+  groups.forEach(g => {
+    filter.innerHTML += `<option value="${g}">${g}</option>`;
+  });
+
+  filter.onchange = e => {
+    selectedGroup = e.target.value;
+    render();
+  };
+
+  document.getElementById("calendarDate").value = selectedDate;
+  document.getElementById("calendarDate").onchange = e => {
+    selectedDate = e.target.value;
+    render();
+  };
+}
+
+// ✅ SAVE TO GOOGLE SHEETS
+function save(id, field, value) {
+
+  if (!records[id]) records[id] = {};
+  records[id][field] = value;
+
+  fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      AnimalID: id,
+      "Delivery Date": records[id].DeliveryDate,
+      "Infant Status": records[id].InfantStatus,
+      "Placenta": records[id].Placenta,
+      "Foster Infant": records[id].Foster,
+      "Notes": records[id].Notes
+    })
+  });
+
+  render();
+}
+
+function switchView(view) {
+  currentView = view;
+
+  document.getElementById("calendarControls")
+    .classList.toggle("hidden", view !== "calendar");
+
+  document.getElementById("listBtn").classList.toggle("active", view === "list");
+  document.getElementById("calBtn").classList.toggle("active", view === "calendar");
+
+  render();
+}
+
+function goToday() {
+  selectedDate = new Date().toISOString().split("T")[0];
+  document.getElementById("calendarDate").value = selectedDate;
+  render();
+}
+
+function toggleCard(id) {
+  document.getElementById("card-" + id).classList.toggle("hidden");
+}
+
+function getStatus(rec) {
+  if (!rec.DeliveryDate) return { color:"yellow", label:"" };
+  if (rec.Foster === "Yes") return { color:"limegreen", label:"F" };
+  if (rec.InfantStatus === "Alive") return { color:"limegreen", label:"" };
+  return { color:"red", label:"" };
+}
+
+function render() {
+
+  let app = document.getElementById("app");
+  app.innerHTML = "";
+
+  let liveCount = 0;
+
+  if (currentView === "list") {
+
+    roster
+      .filter(r => !selectedGroup || (r.Group + " | " + r.Shelter) === selectedGroup)
+      .forEach(r => {
+
+        let rec = records[r.AnimalID] || {};
+        const status = getStatus(rec);
+
+        if (rec.DeliveryDate && (rec.Foster==="Yes" || rec.InfantStatus==="Alive")) {
+          liveCount++;
+        }
+
+        let row = document.createElement("div");
+        row.className = "row";
+
+        row.innerHTML = `
+          <div class="row-header" onclick="toggleCard('${r.AnimalID}')">
+            <div>
+              <span style="color:${status.color}; margin-right:8px;">●</span>
+              ${r.AnimalID} ${r.Name}
+            </div>
+            <div class="date">${rec.DeliveryDate || "—"}</div>
+          </div>
+
+          <div id="card-${r.AnimalID}" class="card hidden">
+
+            <input type="date"
+              value="${rec.DeliveryDate || ''}"
+              onchange="
+                save('${r.AnimalID}','DeliveryDate', this.value);
+                if (!records['${r.AnimalID}']?.InfantStatus) {
+                  save('${r.AnimalID}','InfantStatus','Alive');
+                }
+              ">
+
+            <select onchange="save('${r.AnimalID}','InfantStatus', this.value)">
+              <option value="">Infant</option>
+              <option ${rec.InfantStatus==="Alive"?"selected":""}>Alive</option>
+              <option ${rec.InfantStatus==="Deceased"?"selected":""}>Deceased</option>
+              <option ${rec.InfantStatus==="Pulled"?"selected":""}>Pulled</option>
+            </select>
+
+            <select onchange="save('${r.AnimalID}','Placenta', this.value)">
+              <option value="">Placenta</option>
+              <option ${rec.Placenta==="Yes"?"selected":""}>Yes</option>
+              <option ${rec.Placenta==="No"?"selected":""}>No</option>
+            </select>
+
+            <select onchange="save('${r.AnimalID}','Foster', this.value)">
+              <option value="">Foster</option>
+              <option ${rec.Foster==="Yes"?"selected":""}>Yes</option>
+              <option ${rec.Foster==="No"?"selected":""}>No</option>
+            </select>
+
+            <textarea onchange="save('${r.AnimalID}','Notes', this.value)">
+${rec.Notes || ""}
+            </textarea>
+
+          </div>
+        `;
+
+        app.appendChild(row);
+      });
+
+    document.getElementById("liveCount").innerText = "Live: " + liveCount;
+  }
+
+  else {
+
+    document.getElementById("liveCount").innerText = selectedDate;
+
+    let deliveries = Object.entries(records)
+      .filter(([id, rec]) => rec.DeliveryDate === selectedDate);
+
+    document.getElementById("dayCount").innerText =
+      "Deliveries: " + deliveries.length;
+
+    deliveries.forEach(([id, rec]) => {
+
+      const female = roster.find(r => r.AnimalID === id);
+      const status = getStatus(rec);
+
+      let row = document.createElement("div");
+      row.className = "row";
+
+      row.innerHTML = `
+        <div>
+          <span style="color:${status.color}; margin-right:8px;">●</span>
+          <b>${id}</b>
+        </div>
+        <div style="opacity:0.8;">
+          ${female?.Group || ""} | ${female?.Shelter || ""}
+        </div>
+        <div>${rec.InfantStatus || ""}</div>
+      `;
+
+      app.appendChild(row);
+    });
+
+    if (deliveries.length === 0) {
+      app.innerHTML = "<div style='padding:20px;'>No deliveries on this date</div>";
+    }
+  }
+}
+
+// ✅ START APP
+window.onload = loadData;
+
+</script>
+
+</body>
+</html>
