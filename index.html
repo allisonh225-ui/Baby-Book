@@ -53,24 +53,46 @@ body {
   font-size: 16px;
 }
 
+/* ✅ ROW BASE */
 .row {
   border-bottom: 1px solid #444;
-  padding: 12px;
+  padding: 14px;
 }
+
+/* ✅ ROW HIGHLIGHTING */
+.row.yellow { background: rgba(255,255,0,0.08); }
+.row.red    { background: rgba(255,0,0,0.08); }
+.row.green  { background: rgba(0,255,0,0.08); }
 
 .row-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
 }
 
 .date {
   color: #00ffcc;
+  font-weight: bold;
 }
 
 .card {
   margin-top: 10px;
   padding: 10px;
   background: #111;
+}
+
+/* ✅ BIG ICON */
+.status-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  font-size: 13px;
+  font-weight: bold;
+  color: black;
 }
 
 .hidden {
@@ -109,8 +131,7 @@ body {
 
 <script>
 
-// ✅ PUT YOUR GOOGLE SCRIPT URL HERE
-const API_URL = "https://script.google.com/macros/s/AKfycbwDEpL21Qwj2eWiLSrgNf0kaV2xc3L2ov47CwUH9ZmVih1TgwwB679-BXxs4tQBTxM6OA/exec";
+const API_URL = "PASTE_YOUR_URL_HERE";
 
 let roster = [];
 let records = {};
@@ -119,7 +140,6 @@ let selectedGroup = "";
 let currentView = "list";
 let selectedDate = new Date().toISOString().split("T")[0];
 
-// ✅ LOAD DATA FROM GOOGLE SHEETS
 async function loadData() {
   const res = await fetch(API_URL);
   const data = await res.json();
@@ -171,13 +191,8 @@ function init() {
   };
 
   document.getElementById("calendarDate").value = selectedDate;
-  document.getElementById("calendarDate").onchange = e => {
-    selectedDate = e.target.value;
-    render();
-  };
 }
 
-// ✅ SAVE TO GOOGLE SHEETS
 function save(id, field, value) {
 
   if (!records[id]) records[id] = {};
@@ -216,15 +231,11 @@ function goToday() {
   render();
 }
 
-function toggleCard(id) {
-  document.getElementById("card-" + id).classList.toggle("hidden");
-}
-
 function getStatus(rec) {
-  if (!rec.DeliveryDate) return { color:"yellow", label:"" };
-  if (rec.Foster === "Yes") return { color:"limegreen", label:"F" };
-  if (rec.InfantStatus === "Alive") return { color:"limegreen", label:"" };
-  return { color:"red", label:"" };
+  if (!rec.DeliveryDate) return { color:"yellow", cls:"yellow", label:"" };
+  if (rec.Foster === "Yes") return { color:"limegreen", cls:"green", label:"F" };
+  if (rec.InfantStatus === "Alive") return { color:"limegreen", cls:"green", label:"" };
+  return { color:"red", cls:"red", label:"" };
 }
 
 function render() {
@@ -248,14 +259,19 @@ function render() {
         }
 
         let row = document.createElement("div");
-        row.className = "row";
+        row.className = "row " + status.cls;
 
         row.innerHTML = `
           <div class="row-header" onclick="toggleCard('${r.AnimalID}')">
-            <div>
-              <span style="color:${status.color}; margin-right:8px;">●</span>
+            <div style="display:flex; align-items:center;">
+              
+              <div class="status-icon" style="background:${status.color}">
+                ${status.label}
+              </div>
+
               ${r.AnimalID} ${r.Name}
             </div>
+
             <div class="date">${rec.DeliveryDate || "—"}</div>
           </div>
 
@@ -302,45 +318,8 @@ ${rec.Notes || ""}
     document.getElementById("liveCount").innerText = "Live: " + liveCount;
   }
 
-  else {
-
-    document.getElementById("liveCount").innerText = selectedDate;
-
-    let deliveries = Object.entries(records)
-      .filter(([id, rec]) => rec.DeliveryDate === selectedDate);
-
-    document.getElementById("dayCount").innerText =
-      "Deliveries: " + deliveries.length;
-
-    deliveries.forEach(([id, rec]) => {
-
-      const female = roster.find(r => r.AnimalID === id);
-      const status = getStatus(rec);
-
-      let row = document.createElement("div");
-      row.className = "row";
-
-      row.innerHTML = `
-        <div>
-          <span style="color:${status.color}; margin-right:8px;">●</span>
-          <b>${id}</b>
-        </div>
-        <div style="opacity:0.8;">
-          ${female?.Group || ""} | ${female?.Shelter || ""}
-        </div>
-        <div>${rec.InfantStatus || ""}</div>
-      `;
-
-      app.appendChild(row);
-    });
-
-    if (deliveries.length === 0) {
-      app.innerHTML = "<div style='padding:20px;'>No deliveries on this date</div>";
-    }
-  }
 }
 
-// ✅ START APP
 window.onload = loadData;
 
 </script>
