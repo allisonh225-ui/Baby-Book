@@ -7,11 +7,12 @@ let records = {};
 
 let selectedGroup = "";
 let currentView = "list";
+let selectedDate = new Date().toISOString().split("T")[0];
 
 // ✅ LOAD DATA
 async function loadData() {
   try {
-    const res = await fetch(API_URL);
+    const res = await fetch(API_URL + "?t=" + Date.now()); // prevents caching
     const data = await res.json();
 
     roster = data.map(row => ({
@@ -33,13 +34,12 @@ async function loadData() {
       };
     });
 
-    roster.sort((a, b) => Number(a.AnimalID) - Number(b.AnimalID));
+    roster.sort((a,b) => Number(a.AnimalID) - Number(b.AnimalID));
 
     init();
     render();
 
   } catch (err) {
-    alert("ERROR: " + err.message);
     console.error(err);
   }
 }
@@ -49,22 +49,34 @@ function formatDate(d) {
   return new Date(d).toISOString().split("T")[0];
 }
 
+// ✅ INIT FILTERS
 function init() {
-  const groups = [...new Set(roster.map(r => r.Group + " | " + r.Shelter))];
+  const groups = [...new Set(
+  roster.map(r => ({
+    label: r.Group + " | " + r.Shelter,
+    shelterNum: parseInt((r.Shelter || "").replace(/\D/g, "")) || 0
+  }))
+)];
+
+// ✅ Sort by shelter number
+groups.sort((a, b) => a.shelterNum - b.shelterNum);
 
   let filter = document.getElementById("groupFilter");
   filter.innerHTML = "<option value=''>All Groups</option>";
 
-  groups.forEach(g => {
-    filter.innerHTML += `<option value="${g}">${g}</option>`;
-  });
+groups.forEach(g => {
+  filter.innerHTML += `<option value="${g.label}">${g.label}</option>`;
+});
 
   filter.onchange = e => {
     selectedGroup = e.target.value;
     render();
   };
+
+  document.getElementById("calendarDate").value = selectedDate;
 }
 
+// ✅ STATUS
 function getStatus(rec) {
   if (!rec.DeliveryDate) return { color:"yellow", cls:"yellow", label:"" };
   if (rec.Foster === "Yes") return { color:"limegreen", cls:"green", label:"F" };
@@ -72,6 +84,50 @@ function getStatus(rec) {
   return { color:"red", cls:"red", label:"" };
 }
 
+// ✅ SAVE
+function save(id, field, value) {
+  if (!records[id]) records[id] = {};
+  records[id][field] = value;
+
+  fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      AnimalID: id,
+      "Delivery Date": records[id].DeliveryDate,
+      "Infant Status": records[id].InfantStatus,
+      "Placenta": records[id].Placenta,
+      "Foster Infant": records[id].Foster,
+      "Notes": records[id].Notes
+    })
+  });
+}
+
+// ✅ TOGGLE CARD
+function toggleCard(id) {
+  document.getElementById("card-" + id).classList.toggle("hidden");
+}
+
+// ✅ VIEW SWITCH
+function switchView(view) {
+  currentView = view;
+
+  document.getElementById("calendarControls")
+    .classList.toggle("hidden", view !== "calendar");
+
+  document.getElementById("listBtn").classList.toggle("active", view === "list");
+  document.getElementById("calBtn").classList.toggle("active", view === "calendar");
+
+  render();
+}
+
+// ✅ TODAY BUTTON
+function goToday() {
+  selectedDate = new Date().toISOString().split("T")[0];
+  document.getElementById("calendarDate").value = selectedDate;
+  render();
+}
+
+// ✅ RENDER
 function render() {
 
   let app = document.getElementById("app");
@@ -79,44 +135,123 @@ function render() {
 
   let liveCount = 0;
 
-  roster
-    .filter(r => !selectedGroup || (r.Group + " | " + r.Shelter) === selectedGroup)
-    .forEach(r => {
+  // ✅ LIST VIEW
+  if (currentView === "list") {
 
-      let rec = records[r.AnimalID] || {};
-      const status = getStatus(rec);
+    roster
+      .filter(r => !selectedGroup || (r.Group + " | " + r.Shelter) === selectedGroup)
+      .forEach(r => {
 
-      if (rec.DeliveryDate && (rec.Foster==="Yes" || rec.InfantStatus==="Alive")) {
-        liveCount++;
-      }
+        let rec = records[r.AnimalID] || {};
+        const status = getStatus(rec);
 
-      let row = document.createElement("div");
-      row.className = "row " + status.cls;
+        if (rec.DeliveryDate && (rec.Foster==="Yes" || rec.InfantStatus==="Alive")) {
+          liveCount++;
+        }
 
-      row.innerHTML = `
-        <div class="row-header">
-          <div style="display:flex; align-items:center;">
-            
-            <div class="status-icon" style="background:${status.color}">
-              ${status.label}
+        let row = document.createElement("div");
+        row.className = "row " + status.cls;
+
+        row.innerHTML = `
+          <div class="row-header" onclick="toggleCard('${r.AnimalID}')">
+            <div style="display:flex; align-items:center;">
+              
+              <div class="status-icon" style="background:${status.color}">
+                ${status.label}
+              </div>
+
+              <div>
+                <span style="opacity:0.7;">${r.AnimalID}</span> ${r.Name}
+              </div>
             </div>
 
-            <div>
-              <span style="opacity:0.7; margin-right:6px;">${r.AnimalID}</span>
-              ${r.Name}
-            </div>
-
+            <div class="date">${rec.DeliveryDate || "—"}</div>
           </div>
 
-          <div class="date">${rec.DeliveryDate || "—"}</div>
+          <div id="card-${r.AnimalID}" class="card hidden">
+
+            <input type="date"
+              value="${rec.DeliveryDate || ''}"
+              onchange="
+                save('${r.AnimalID}','DeliveryDate', this.value);
+                if (!records['${r.AnimalID}']?.InfantStatus) {
+                  save('${r.AnimalID}','InfantStatus','Alive');
+                }
+              ">
+
+            <select onchange="save('${r.AnimalID}','InfantStatus', this.value)">
+              <option value="">Infant</option>
+              <option ${rec.InfantStatus==="Alive"?"selected":""}>Alive</option>
+              <option ${rec.InfantStatus==="Deceased"?"selected":""}>Deceased</option>
+              <option ${rec.InfantStatus==="Pulled"?"selected":""}>Pulled</option>
+            </select>
+
+            <select onchange="save('${r.AnimalID}','Placenta', this.value)">
+              <option value="">Placenta</option>
+              <option ${rec.Placenta==="Yes"?"selected":""}>Yes</option>
+              <option ${rec.Placenta==="No"?"selected":""}>No</option>
+            </select>
+
+            <select onchange="save('${r.AnimalID}','Foster', this.value)">
+              <option value="">Foster</option>
+              <option ${rec.Foster==="Yes"?"selected":""}>Yes</option>
+              <option ${rec.Foster==="No"?"selected":""}>No</option>
+            </select>
+
+            <textarea onchange="save('${r.AnimalID}','Notes', this.value)">
+${rec.Notes || ""}
+            </textarea>
+
+          </div>
+        `;
+
+        app.appendChild(row);
+      });
+
+    document.getElementById("liveCount").innerText = "Live: " + liveCount;
+  }
+
+  // ✅ CALENDAR VIEW
+  else {
+
+    document.getElementById("liveCount").innerText = selectedDate;
+
+    let deliveries = Object.entries(records)
+      .filter(([id, rec]) => rec.DeliveryDate === selectedDate);
+
+    document.getElementById("dayCount").innerText =
+      "Deliveries: " + deliveries.length;
+
+    deliveries.forEach(([id, rec]) => {
+
+      const female = roster.find(r => r.AnimalID === id);
+      const status = getStatus(rec);
+
+      let row = document.createElement("div");
+      row.className = "row";
+
+      row.innerHTML = `
+        <div>
+          <span style="color:${status.color}; margin-right:8px;">●</span>
+          <b>${id}</b>
         </div>
+        <div style="opacity:0.8;">
+          ${female?.Group || ""} | ${female?.Shelter || ""}
+        </div>
+        <div>${rec.InfantStatus || ""}</div>
       `;
 
       app.appendChild(row);
     });
 
-  document.getElementById("liveCount").innerText = "Live: " + liveCount;
+    if (deliveries.length === 0) {
+      app.innerHTML = "<div style='padding:20px;'>No deliveries on this date</div>";
+    }
+  }
 }
+
+// ✅ AUTO REFRESH every 15 sec
+setInterval(loadData, 15000);
 
 // ✅ START
 window.onload = loadData;
