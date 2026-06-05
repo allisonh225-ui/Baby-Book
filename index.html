@@ -180,7 +180,7 @@ function init() {
   if (!filter) return;
 
   let groups = roster.map(r => ({
-    label: r.Group + " | " + r.Shelter,
+    label: r.Shelter + " | " + r.Group,
     shelterNum: parseInt((r.Shelter || "").replace(/\D/g, "")) || 0
   }));
 
@@ -264,7 +264,7 @@ function render() {
   if (currentView === "list") {
 
     roster
-      .filter(r => !selectedGroup || (r.Group + " | " + r.Shelter) === selectedGroup)
+      .filter(r => !selectedGroup || (r.Shelter + " | " + r.Group) === selectedGroup)
       .forEach(r => {
 
         let rec = records[r.AnimalID] || {};
