@@ -221,6 +221,12 @@ function init() {
   };
 
   document.getElementById("calendarDate").value = selectedDate;
+  
+document.getElementById("calendarDate").onchange = (e) => {
+  selectedDate = e.target.value;
+  render();
+};
+
 }
 
 // ✅ STATUS
