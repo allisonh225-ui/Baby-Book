@@ -213,7 +213,7 @@ function init() {
   groups.forEach(g => {
     filter.innerHTML += `<option value="${g.label}">${g.label}</option>`;
   });
-  filter.value = prevSelection;
+  filter.value = selectedGroup;
 
   filter.onchange = e => {
     selectedGroup = e.target.value;
