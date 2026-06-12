@@ -191,8 +191,9 @@ function formatDate(d) {
 }
 
 // ✅ INIT (WITH CORRECT SHELTER SORT)
-function init() {
+let initialized = false;
 
+function init() {
   let filter = document.getElementById("groupFilter");
   if (!filter) return;
 
@@ -201,32 +202,32 @@ function init() {
     shelterNum: parseInt((r.Shelter || "").replace(/\D/g, "")) || 0
   }));
 
-  // remove duplicates
   groups = groups.filter((v, i, a) =>
     a.findIndex(x => x.label === v.label) === i
   );
 
-  // sort by shelter
   groups.sort((a, b) => a.shelterNum - b.shelterNum);
 
+  const prevSelection = filter.value;
   filter.innerHTML = "<option value=''>All Groups</option>";
-
   groups.forEach(g => {
     filter.innerHTML += `<option value="${g.label}">${g.label}</option>`;
   });
+  filter.value = prevSelection;
 
   filter.onchange = e => {
     selectedGroup = e.target.value;
     render();
   };
 
-  document.getElementById("calendarDate").value = selectedDate;
-  
-document.getElementById("calendarDate").onchange = (e) => {
-  selectedDate = e.target.value;
-  render();
-};
-
+  if (!initialized) {
+    document.getElementById("calendarDate").value = selectedDate;
+    document.getElementById("calendarDate").onchange = (e) => {
+      selectedDate = e.target.value;
+      render();
+    };
+    initialized = true;
+  }
 }
 
 // ✅ STATUS
