@@ -314,15 +314,7 @@ function render() {
 
           <div id="card-${r.AnimalID}" class="card hidden">
 
-            <input type="date"
-              value="${rec.DeliveryDate || ''}"
-              onchange="
-                save('${r.AnimalID}','DeliveryDate', this.value);
-                if (!records['${r.AnimalID}']?.InfantStatus) {
-                  save('${r.AnimalID}','InfantStatus','Alive');
-                }
-              ">
-
+v
             <select onchange="save('${r.AnimalID}','InfantStatus', this.value)">
               <option value="">Infant</option>
               <option ${rec.InfantStatus==="Alive"?"selected":""}>Alive</option>
