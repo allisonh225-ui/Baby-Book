@@ -312,9 +312,28 @@ function render() {
             <div class="date">${rec.DeliveryDate || "—"}</div>
           </div>
 
-          <div id="card-${r.AnimalID}" class="card hidden">
+        <div id="card-${r.AnimalID}" class="card hidden">
 
-v
+            <div style="display:flex; gap:8px; margin-top:12px;">
+              <input type="date" id="date-${r.AnimalID}"
+                value="${rec.DeliveryDate || ''}"
+                style="flex:1; margin-top:0;"
+                onchange="
+                  save('${r.AnimalID}','DeliveryDate', this.value);
+                  if (!records['${r.AnimalID}']?.InfantStatus) {
+                    save('${r.AnimalID}','InfantStatus','Alive');
+                  }
+                ">
+              <button class="view-btn" style="margin:0; background:#ff4444; color:white;"
+                onclick="
+                  records['${r.AnimalID}'].DeliveryDate = '';
+                  records['${r.AnimalID}'].InfantStatus = '';
+                  save('${r.AnimalID}','DeliveryDate','');
+                  save('${r.AnimalID}','InfantStatus','');
+                  document.getElementById('date-${r.AnimalID}').value = '';
+                ">✕</button>
+            </div>
+
             <select onchange="save('${r.AnimalID}','InfantStatus', this.value)">
               <option value="">Infant</option>
               <option ${rec.InfantStatus==="Alive"?"selected":""}>Alive</option>
