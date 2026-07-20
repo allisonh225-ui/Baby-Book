@@ -369,26 +369,68 @@ ${rec.Notes || ""}
   else {
     document.getElementById("liveCount").innerText = selectedDate;
 
-    let deliveries = Object.entries(records)
-      .filter(([id, rec]) => rec.DeliveryDate === selectedDate);
-
-    document.getElementById("dayCount").innerText =
-      "Deliveries: " + deliveries.length;
-
-    deliveries.forEach(([id, rec]) => {
+deliveries.forEach(([id, rec]) => {
       const female = roster.find(r => r.AnimalID === id);
       const status = getStatus(rec);
 
       let row = document.createElement("div");
-      row.className = "row";
+      row.className = "row " + status.cls;
 
       row.innerHTML = `
-        <div>
-          <span style="color:${status.color}; margin-right:8px;">●</span>
-          <b>${id}</b>
+        <div class="row-header" onclick="toggleCard('cal-${id}')">
+          <div style="display:flex; align-items:center;">
+            <div class="status-icon" style="background:${status.color}">
+              ${status.label}
+            </div>
+            <b>${id}</b> &nbsp; ${female?.Name || ""}
+          </div>
+          <div style="font-size:13px; color:#aaa;">${female?.Group || ""} | ${female?.Shelter || ""}</div>
         </div>
-        <div>${female?.Group || ""} | ${female?.Shelter || ""}</div>
-        <div>${rec.InfantStatus || ""}</div>
+
+        <div id="card-cal-${id}" class="card hidden">
+
+          <div style="display:flex; gap:8px; margin-top:12px;">
+            <input type="date" id="caldate-${id}"
+              value="${rec.DeliveryDate || ''}"
+              style="flex:1; margin-top:0;"
+              onchange="
+                save('${id}','DeliveryDate', this.value);
+                if (!records['${id}']?.InfantStatus) {
+                  save('${id}','InfantStatus','Alive');
+                }
+              ">
+            <button class="view-btn" style="margin:0; background:#ff4444; color:white;"
+              onclick="
+                records['${id}'].DeliveryDate = '';
+                records['${id}'].InfantStatus = '';
+                save('${id}','DeliveryDate','');
+                save('${id}','InfantStatus','');
+                document.getElementById('caldate-${id}').value = '';
+              ">✕</button>
+          </div>
+
+          <select onchange="save('${id}','InfantStatus', this.value)">
+            <option value="">Infant</option>
+            <option ${rec.InfantStatus==="Alive"?"selected":""}>Alive</option>
+            <option ${rec.InfantStatus==="Deceased"?"selected":""}>Deceased</option>
+            <option ${rec.InfantStatus==="Pulled"?"selected":""}>Pulled</option>
+          </select>
+
+          <select onchange="save('${id}','Placenta', this.value)">
+            <option value="">Placenta</option>
+            <option ${rec.Placenta==="Yes"?"selected":""}>Yes</option>
+            <option ${rec.Placenta==="No"?"selected":""}>No</option>
+          </select>
+
+          <select onchange="save('${id}','Foster', this.value)">
+            <option value="">Foster</option>
+            <option ${rec.Foster==="Yes"?"selected":""}>Yes</option>
+            <option ${rec.Foster==="No"?"selected":""}>No</option>
+          </select>
+
+          <textarea onchange="save('${id}','Notes', this.value)">${rec.Notes || ""}</textarea>
+
+        </div>
       `;
 
       app.appendChild(row);
