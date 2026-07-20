@@ -282,22 +282,29 @@ function getStatus(rec) {
 function save(id, field, value) {
   if (!records[id]) records[id] = {};
   records[id][field] = value;
-
-  fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      AnimalID: id,
-      "Delivery Date": records[id].DeliveryDate,
-      "Infant Status": records[id].InfantStatus,
-      "Placenta": records[id].Placenta,
-      "Foster Infant": records[id].Foster,
-      "Notes": records[id].Notes
-    })
-  });
 }
 
 function toggleCard(id) {
-  document.getElementById("card-" + id).classList.toggle("hidden");
+  const card = document.getElementById("card-" + id);
+  const isHidden = card.classList.contains("hidden");
+  card.classList.toggle("hidden");
+
+  // If we just closed the card, save and re-render
+  if (!isHidden) {
+    const animalID = id.replace("cal-", "");
+    fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        AnimalID: animalID,
+        "Delivery Date": records[animalID].DeliveryDate,
+        "Infant Status": records[animalID].InfantStatus,
+        "Placenta": records[animalID].Placenta,
+        "Foster Infant": records[animalID].Foster,
+        "Notes": records[animalID].Notes
+      })
+    });
+    render();
+  }
 }
 
 function switchView(view) {
@@ -382,7 +389,6 @@ function render() {
                   if (!records['${r.AnimalID}']?.Foster) {
                     save('${r.AnimalID}','Foster','No');
                   }
-                  render();
                 ">
               <button class="view-btn" style="margin:0; background:#ff4444; color:white;"
                 onclick="
@@ -391,7 +397,6 @@ function render() {
                   save('${r.AnimalID}','DeliveryDate','');
                   save('${r.AnimalID}','InfantStatus','');
                   document.getElementById('date-${r.AnimalID}').value = '';
-                  render();
                 ">✕</button>
             </div>
 
@@ -456,7 +461,6 @@ function render() {
                 if (!records['${id}']?.Foster) {
                   save('${id}','Foster','No');
                 }
-                render();
               ">
             <button class="view-btn" style="margin:0; background:#ff4444; color:white;"
               onclick="
@@ -465,7 +469,6 @@ function render() {
                 save('${id}','DeliveryDate','');
                 save('${id}','InfantStatus','');
                 document.getElementById('caldate-${id}').value = '';
-                render();
               ">✕</button>
           </div>
 
