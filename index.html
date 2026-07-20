@@ -107,7 +107,38 @@ body {
   font-weight: bold;
   color: black;
 }
+.radio-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
 
+.radio-group label {
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: #333;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.radio-group input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  accent-color: #f59aec;
+}
+
+.radio-group label:has(input:checked) {
+  background: #f59aec;
+  color: black;
+  font-weight: bold;
+}
 .hidden {
   display: none;
 }
@@ -323,6 +354,10 @@ function render() {
                   if (!records['${r.AnimalID}']?.InfantStatus) {
                     save('${r.AnimalID}','InfantStatus','Alive');
                   }
+                  if (!records['${r.AnimalID}']?.Foster) {
+                    save('${r.AnimalID}','Foster','No');
+                  }
+                  render();
                 ">
               <button class="view-btn" style="margin:0; background:#ff4444; color:white;"
                 onclick="
@@ -404,6 +439,10 @@ deliveries.forEach(([id, rec]) => {
                 if (!records['${id}']?.InfantStatus) {
                   save('${id}','InfantStatus','Alive');
                 }
+                if (!records['${id}']?.Foster) {
+                  save('${id}','Foster','No');
+                }
+                render();
               ">
             <button class="view-btn" style="margin:0; background:#ff4444; color:white;"
               onclick="
