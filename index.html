@@ -368,7 +368,13 @@ ${rec.Notes || ""}
 
   else {
     document.getElementById("liveCount").innerText = selectedDate;
+  
+    let deliveries = Object.entries(records)
+      .filter(([id, rec]) => rec.DeliveryDate === selectedDate);
 
+    document.getElementById("dayCount").innerText =
+      "Deliveries: " + deliveries.length;
+    
 deliveries.forEach(([id, rec]) => {
       const female = roster.find(r => r.AnimalID === id);
       const status = getStatus(rec);
