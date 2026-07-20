@@ -132,6 +132,11 @@ body {
   padding: 0;
   accent-color: #f59aec;
 }
+  .radio-group label:has(input:checked) {
+  background: #f59aec;
+  color: black;
+  font-weight: bold;
+}
 .radio-group label.green:has(input:checked) {
   background: limegreen;
   color: black;
@@ -141,11 +146,6 @@ body {
 .radio-group label.red:has(input:checked) {
   background: red;
   color: white;
-  font-weight: bold;
-}
-.radio-group label:has(input:checked) {
-  background: #f59aec;
-  color: black;
   font-weight: bold;
 }
 
@@ -334,13 +334,13 @@ function radioGroup(id, field, options, selected, colors = {}) {
   `;
 }
 
-// ✅ RENDER LIST VIEW
+// ✅ RENDER 
 function render() {
   let app = document.getElementById("app");
   app.innerHTML = "";
 
   let liveCount = 0;
-
+// ✅ RENDER LIST VIEW
   if (currentView === "list") {
 
     roster
@@ -396,7 +396,7 @@ function render() {
             </div>
 
             <div style="color:#aaa; font-size:13px; margin-top:14px;">Infant Status</div>
-            ${radioGroup(id, 'InfantStatus', ['Alive','Deceased','Pulled'], rec.InfantStatus, {Alive:'green', Deceased:'red', Pulled:'red'})}
+            ${radioGroup(r.AnimalID, 'InfantStatus', ['Alive','Deceased','Pulled'], rec.InfantStatus, {Alive:'green', Deceased:'red', Pulled:'red'})}
             
             <div style="color:#aaa; font-size:13px; margin-top:14px;">Placenta</div>
             ${radioGroup(r.AnimalID, 'Placenta', ['Yes','No'], rec.Placenta)}
@@ -414,7 +414,7 @@ function render() {
 
     document.getElementById("liveCount").innerText = "Live: " + liveCount;
   }
-
+  // ✅ RENDER CALENDAR VIEW
   else {
     document.getElementById("liveCount").innerText = selectedDate;
 
@@ -470,7 +470,7 @@ function render() {
           </div>
 
           <div style="color:#aaa; font-size:13px; margin-top:14px;">Infant Status</div>
-          ${radioGroup(r.AnimalID, 'InfantStatus', ['Alive','Deceased','Pulled'], rec.InfantStatus, {Alive:'green', Deceased:'red', Pulled:'red'})}
+          ${radioGroup(id, 'InfantStatus', ['Alive','Deceased','Pulled'], rec.InfantStatus, {Alive:'green', Deceased:'red', Pulled:'red'})}
 
           <div style="color:#aaa; font-size:13px; margin-top:14px;">Placenta</div>
           ${radioGroup(id, 'Placenta', ['Yes','No'], rec.Placenta)}
