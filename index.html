@@ -189,7 +189,10 @@ let roster = [];
 let records = {};
 let selectedGroup = "";
 let currentView = "list";
-let selectedDate = new Date().toISOString().split("T")[0];
+const now = new Date();
+let selectedDate = now.getFullYear() + '-' +
+  String(now.getMonth() + 1).padStart(2, '0') + '-' +
+  String(now.getDate()).padStart(2, '0');
 
 // ✅ LOAD DATA
 async function loadData() {
@@ -320,7 +323,10 @@ function switchView(view) {
 }
 
 function goToday() {
-  selectedDate = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  selectedDate = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0');
   document.getElementById("calendarDate").value = selectedDate;
   render();
 }
