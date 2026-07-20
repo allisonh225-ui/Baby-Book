@@ -72,7 +72,6 @@ body {
   font-weight: bold;
 }
 
-
 .card {
   margin-top: 10px;
   padding: 18px;
@@ -94,7 +93,6 @@ body {
   min-height: 90px;
 }
 
-
 .status-icon {
   width: 22px;
   height: 22px;
@@ -107,6 +105,7 @@ body {
   font-weight: bold;
   color: black;
 }
+
 .radio-group {
   display: flex;
   gap: 8px;
@@ -139,6 +138,7 @@ body {
   color: black;
   font-weight: bold;
 }
+
 .hidden {
   display: none;
 }
@@ -221,7 +221,7 @@ function formatDate(d) {
   return new Date(d).toISOString().split("T")[0];
 }
 
-// ✅ INIT (WITH CORRECT SHELTER SORT)
+// ✅ INIT
 let initialized = false;
 
 function init() {
@@ -239,7 +239,6 @@ function init() {
 
   groups.sort((a, b) => a.shelterNum - b.shelterNum);
 
-  const prevSelection = filter.value;
   filter.innerHTML = "<option value=''>All Groups</option>";
   groups.forEach(g => {
     filter.innerHTML += `<option value="${g.label}">${g.label}</option>`;
@@ -309,6 +308,22 @@ function goToday() {
   render();
 }
 
+// ✅ RADIO GROUP HELPER
+function radioGroup(id, field, options, selected) {
+  return `
+    <div class="radio-group">
+      ${options.map(opt => `
+        <label>
+          <input type="radio" name="${field}-${id}" value="${opt}"
+            ${selected === opt ? "checked" : ""}
+            onchange="save('${id}','${field}', this.value)">
+          ${opt}
+        </label>
+      `).join("")}
+    </div>
+  `;
+}
+
 // ✅ RENDER
 function render() {
   let app = document.getElementById("app");
@@ -343,7 +358,7 @@ function render() {
             <div class="date">${rec.DeliveryDate || "—"}</div>
           </div>
 
-        <div id="card-${r.AnimalID}" class="card hidden">
+          <div id="card-${r.AnimalID}" class="card hidden">
 
             <div style="display:flex; gap:8px; margin-top:12px;">
               <input type="date" id="date-${r.AnimalID}"
@@ -366,31 +381,20 @@ function render() {
                   save('${r.AnimalID}','DeliveryDate','');
                   save('${r.AnimalID}','InfantStatus','');
                   document.getElementById('date-${r.AnimalID}').value = '';
+                  render();
                 ">✕</button>
             </div>
 
-            <select onchange="save('${r.AnimalID}','InfantStatus', this.value)">
-              <option value="">Infant</option>
-              <option ${rec.InfantStatus==="Alive"?"selected":""}>Alive</option>
-              <option ${rec.InfantStatus==="Deceased"?"selected":""}>Deceased</option>
-              <option ${rec.InfantStatus==="Pulled"?"selected":""}>Pulled</option>
-            </select>
+            <div style="color:#aaa; font-size:13px; margin-top:14px;">Infant Status</div>
+            ${radioGroup(r.AnimalID, 'InfantStatus', ['Alive','Deceased','Pulled'], rec.InfantStatus)}
 
-            <select onchange="save('${r.AnimalID}','Placenta', this.value)">
-              <option value="">Placenta</option>
-              <option ${rec.Placenta==="Yes"?"selected":""}>Yes</option>
-              <option ${rec.Placenta==="No"?"selected":""}>No</option>
-            </select>
+            <div style="color:#aaa; font-size:13px; margin-top:14px;">Placenta</div>
+            ${radioGroup(r.AnimalID, 'Placenta', ['Yes','No'], rec.Placenta)}
 
-            <select onchange="save('${r.AnimalID}','Foster', this.value)">
-              <option value="">Foster</option>
-              <option ${rec.Foster==="Yes"?"selected":""}>Yes</option>
-              <option ${rec.Foster==="No"?"selected":""}>No</option>
-            </select>
+            <div style="color:#aaa; font-size:13px; margin-top:14px;">Foster</div>
+            ${radioGroup(r.AnimalID, 'Foster', ['Yes','No'], rec.Foster)}
 
-            <textarea onchange="save('${r.AnimalID}','Notes', this.value)">
-${rec.Notes || ""}
-            </textarea>
+            <textarea onchange="save('${r.AnimalID}','Notes', this.value)">${rec.Notes || ""}</textarea>
 
           </div>
         `;
@@ -403,14 +407,14 @@ ${rec.Notes || ""}
 
   else {
     document.getElementById("liveCount").innerText = selectedDate;
-  
+
     let deliveries = Object.entries(records)
       .filter(([id, rec]) => rec.DeliveryDate === selectedDate);
 
     document.getElementById("dayCount").innerText =
       "Deliveries: " + deliveries.length;
-    
-deliveries.forEach(([id, rec]) => {
+
+    deliveries.forEach(([id, rec]) => {
       const female = roster.find(r => r.AnimalID === id);
       const status = getStatus(rec);
 
@@ -451,27 +455,18 @@ deliveries.forEach(([id, rec]) => {
                 save('${id}','DeliveryDate','');
                 save('${id}','InfantStatus','');
                 document.getElementById('caldate-${id}').value = '';
+                render();
               ">✕</button>
           </div>
 
-          <select onchange="save('${id}','InfantStatus', this.value)">
-            <option value="">Infant</option>
-            <option ${rec.InfantStatus==="Alive"?"selected":""}>Alive</option>
-            <option ${rec.InfantStatus==="Deceased"?"selected":""}>Deceased</option>
-            <option ${rec.InfantStatus==="Pulled"?"selected":""}>Pulled</option>
-          </select>
+          <div style="color:#aaa; font-size:13px; margin-top:14px;">Infant Status</div>
+          ${radioGroup(id, 'InfantStatus', ['Alive','Deceased','Pulled'], rec.InfantStatus)}
 
-          <select onchange="save('${id}','Placenta', this.value)">
-            <option value="">Placenta</option>
-            <option ${rec.Placenta==="Yes"?"selected":""}>Yes</option>
-            <option ${rec.Placenta==="No"?"selected":""}>No</option>
-          </select>
+          <div style="color:#aaa; font-size:13px; margin-top:14px;">Placenta</div>
+          ${radioGroup(id, 'Placenta', ['Yes','No'], rec.Placenta)}
 
-          <select onchange="save('${id}','Foster', this.value)">
-            <option value="">Foster</option>
-            <option ${rec.Foster==="Yes"?"selected":""}>Yes</option>
-            <option ${rec.Foster==="No"?"selected":""}>No</option>
-          </select>
+          <div style="color:#aaa; font-size:13px; margin-top:14px;">Foster</div>
+          ${radioGroup(id, 'Foster', ['Yes','No'], rec.Foster)}
 
           <textarea onchange="save('${id}','Notes', this.value)">${rec.Notes || ""}</textarea>
 
