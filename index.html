@@ -220,10 +220,15 @@ async function loadData() {
       };
     });
 
-    roster.sort((a,b) => Number(a.AnimalID) - Number(b.AnimalID));
+roster.sort((a,b) => Number(a.AnimalID) - Number(b.AnimalID));
 
     init();
-    render();
+
+    // Don't re-render if a card is currently open
+    const anyCardOpen = document.querySelector(".card:not(.hidden)");
+    if (!anyCardOpen) {
+      render();
+    }
 
   } catch (err) {
     console.error(err);
