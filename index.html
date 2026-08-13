@@ -161,7 +161,11 @@ body {
 <div class="header">
   <div class="top-row">
     <h2>Baby Book</h2>
-    <div id="liveCount">Live: 0</div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div id="syncStatus"></div>
+      <div id="liveCount">Live: 0</div>
+      <button class="view-btn" onclick="manualSync()">Sync</button>
+    </div>
   </div>
 
   <div class="controls">
@@ -195,6 +199,18 @@ let selectedDate = now.getFullYear() + '-' +
   String(now.getMonth() + 1).padStart(2, '0') + '-' +
   String(now.getDate()).padStart(2, '0');
 
+function manualSync() {
+  const status = document.getElementById("syncStatus");
+  status.innerText = "⏳";
+  loadData().then(() => {
+    status.innerText = "✅";
+    setTimeout(() => status.innerText = "", 3000);
+  }).catch(() => {
+    status.innerText = "❌";
+    setTimeout(() => status.innerText = "", 3000);
+  });
+}
+  
 // ✅ LOAD DATA
 async function loadData() {
   try {
@@ -298,9 +314,11 @@ function toggleCard(id) {
   const isHidden = card.classList.contains("hidden");
   card.classList.toggle("hidden");
 
-  // If we just closed the card, save and re-render
   if (!isHidden) {
     const animalID = id.replace("cal-", "");
+    const status = document.getElementById("syncStatus");
+    status.innerText = "⏳";
+
     fetch(API_URL, {
       method: "POST",
       body: JSON.stringify({
@@ -311,7 +329,14 @@ function toggleCard(id) {
         "Foster Infant": records[animalID].Foster,
         "Notes": records[animalID].Notes
       })
+    }).then(() => {
+      status.innerText = "✅";
+      setTimeout(() => status.innerText = "", 3000);
+    }).catch(() => {
+      status.innerText = "❌ Save failed";
+      setTimeout(() => status.innerText = "", 5000);
     });
+
     render();
   }
 }
@@ -506,9 +531,6 @@ function render() {
     }
   }
 }
-
-// ✅ AUTO REFRESH
-setInterval(loadData, 15000);
 
 // ✅ START
 window.onload = loadData;
